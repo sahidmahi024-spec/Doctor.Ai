@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Sahid Doctor.AI - AI Health Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        section:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        h2 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+
+        #chat-messages {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background-color: #d4f4e6;
+            text-align: right;
+            border-top-right-radius: 0;
+        }
+
+        .ai-message {
+            background-color: #f0f0f0;
+            text-align: left;
+            border-top-left-radius: 0;
+        }
+
+        .prescription {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fffacd;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            height: 120px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        select {
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 48%;
+            margin-right: 4%;
+        }
+
+        button {
+            padding: 12px 20px;
+            margin: 5px 0;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .speak-btn, .download-btn {
+            margin-left: 10px;
+            padding: 6px 12px;
+            font-size: 14px;
+            background-color: #2196F3;
+        }
+
+        .download-btn {
+            background-color: #FFC107;
+        }
+
+        .download-btn:hover {
+            background-color: #FFA000;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #888;
+        }
+
+        #clear-chat {
+            background-color: #f44336;
+            margin-left: 10px;
+        }
+
+        #clear-chat:hover {
+            background-color: #d32f2f;
+        }
+
+        #report-preview {
+            max-width: 100%;
+            margin-top: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #voice-btn {
+            background-color: #FF5722;
+            margin-left: 10px;
+        }
+
+        #voice-btn:hover {
+            background-color: #E64A19;
+        }
+
+        #voice-status {
+            margin-left: 10px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            select {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body onload="loadChatHistory()">
+    <header>
+        <h1>Doctor.AI - Your AI Health Assistant</h1>
+        <p>Chat about your problems, upload reports, and get suggestions in English, Hindi, or Bangla. Handles small to big diseases. (Note: This is a  real medical advice.But if you are facing more problem or big deceaseb then contact to ypur nearby hospital )</p>
+        <p>This Ai Created By Sahid Akhtar Student Of Panskura Banamai College</p>
+<p> Customer Support Email-sahidakhtar1804@gmail.com </p>
+<p> Phone Number- 9832503541 </p>
+    </header>
+
+    <section id="settings">
+        <h2>Select Department and Language</h2>
+        <select id="department">
+            <option value="General">General Medicine</option>
+            <option value="Cardiology">Cardiology</option>
+            <option value="Dermatology">Dermatology</option>
+            <option value="Neurology">Neurology</option>
+            <option value="Pediatrics">Pediatrics</option>
+            <option value="Orthopedics">Orthopedics</option>
+            <option value="Oncology">Oncology (for big diseases)</option>
+            <option value="ENT">ENT</option>
+        </select>
+        <select id="language">
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Bangla">Bangla</option>
+        </select>
+    </section>
+
+    <section id="chat-section">
+        <h2>Chat with Sahid Doctor.AI</h2>
+        <div id="chat-messages"></div>
+        <div id="loading">Thinking...</div>
+        <textarea id="user-input" placeholder="Describe your problem, e.g., 'I have a headache' or 'chest pain'..."></textarea>
+        <button onclick="sendMessage()">Send</button>
+        <button id="voice-btn" onclick="toggleVoiceRecognition()">Voice Input</button>
+        <span id="voice-status"></span>
+        <button id="clear-chat" onclick="clearChat()">Clear Chat</button>
+    </section>
+
+    <section id="report-section">
+        <h2>Upload Medical Report (Image)</h2>
+        <input type="file" id="report-file" accept="image/*">
+        <button onclick="analyzeReport()">Analyze Report</button>
+        <img id="report-preview" style="display:none;" alt="Report Preview">
+    </section>
+
+    <script>
+        let messages = [];
+        let recognition;
+        let isRecognizing = false;
+
+        // Expanded mock responses with 26 conditions
+        const mockResponses = {
+            English: {
+                headache: {
+                    suggestion: "Your headache could be due to stress, dehydration, or tension. Rest, stay hydrated, and consider over-the-counter pain relief.",
+                    prescription: "Ibuprofen 200mg, take 1-2 tablets every 6 hours as needed. --- Rest and hydrate adequately."
+                },
+                "chest pain": {
+                    suggestion: "Chest pain may indicate heart issues, muscle strain, or acid reflux. Seek immediate medical attention if severe.",
+                    prescription: "Consult a cardiologist immediately. --- Avoid heavy meals; consider antacids if reflux suspected."
+                },
+                fever: {
+                    suggestion: "Fever could be from infection, flu, or other causes. Monitor temperature and stay hydrated.",
+                    prescription: "Paracetamol 500mg, every 4-6 hours. --- Drink fluids and rest."
+                },
+                rash: {
+                    suggestion: "A rash might be allergic reaction, infection, or skin condition. Avoid irritants and keep area clean.",
+                    prescription: "Hydrocortisone cream, apply twice daily. --- Antihistamine if itchy."
+                },
+                cough: {
+                    suggestion: "Cough could be from cold, allergies, or respiratory issue. Stay hydrated and use lozenges.",
+                    prescription: "Cough syrup, as per dosage. --- Inhale steam."
+                },
+                "back pain": {
+                    suggestion: "Back pain may be due to strain, posture, or injury. Rest and apply heat.",
+                    prescription: "Pain reliever like Ibuprofen. --- Physiotherapy if persistent."
+                },
+                diarrhea: {
+                    suggestion: "Diarrhea may result from infection, food intolerance, or stress. Stay hydrated and avoid spicy foods.",
+                    prescription: "Oral rehydration salts, as per instructions. --- Loperamide if severe."
+                },
+                "sore throat": {
+                    suggestion: "Sore throat could be due to viral infection or irritation. Gargle with salt water and stay hydrated.",
+                    prescription: "Throat lozenges, use as needed. --- Rest and warm fluids."
+                },
+                fatigue: {
+                    suggestion: "Fatigue may be caused by lack of sleep, stress, or anemia. Ensure adequate rest and nutrition.",
+                    prescription: "Multivitamin supplement daily. --- Consult for blood tests if persistent."
+                },
+                nausea: {
+                    suggestion: "Nausea could be due to food poisoning, motion sickness, or infection. Avoid heavy foods and stay hydrated.",
+                    prescription: "Ondansetron 4mg, as needed. --- Sip ginger tea."
+                },
+                dizziness: {
+                    suggestion: "Dizziness may result from dehydration, low blood pressure, or inner ear issues. Rest and hydrate.",
+                    prescription: "Consult for balance tests. --- Stay hydrated and avoid sudden movements."
+                },
+                "joint pain": {
+                    suggestion: "Joint pain could be arthritis, injury, or inflammation. Apply ice and rest the joint.",
+                    prescription: "Ibuprofen 400mg, every 6 hours as needed. --- Consult an orthopedist."
+                },
+                "abdominal pain": {
+                    suggestion: "Abdominal pain may be due to gas, infection, or organ issues. Avoid heavy meals and monitor symptoms.",
+                    prescription: "Antacids for mild cases. --- Seek medical evaluation if severe."
+                },
+                insomnia: {
+                    suggestion: "Insomnia may be caused by stress, caffeine, or medical conditions. Establish a sleep routine.",
+                    prescription: "Melatonin 3mg, 30 minutes before bedtime. --- Avoid screens at night."
+                },
+                "shortness of breath": {
+                    suggestion: "Shortness of breath could indicate asthma, heart issues, or anxiety. Seek immediate help if severe.",
+                    prescription: "Consult a pulmonologist. --- Use an inhaler if prescribed."
+                },
+                "ear pain": {
+                    suggestion: "Ear pain may be due to infection, wax buildup, or injury. Avoid inserting objects in the ear.",
+                    prescription: "Antibiotic ear drops if infected. --- Consult an ENT specialist."
+                },
+                "high blood pressure": {
+                    suggestion: "High blood pressure may require lifestyle changes or medication. Monitor regularly.",
+                    prescription: "Consult a cardiologist. --- Low-salt diet and regular exercise."
+                },
+                "low blood sugar": {
+                    suggestion: "Low blood sugar may occur in diabetes or fasting. Consume a quick sugar source.",
+                    prescription: "Glucose tablets, as needed. --- Consult an endocrinologist."
+                },
+                anemia: {
+                    suggestion: "Anemia may cause fatigue and weakness. Increase iron-rich foods and consult a doctor.",
+                    prescription: "Iron supplements, as prescribed. --- Include spinach and red meat in diet."
+                },
+                "urinary issues": {
+                    suggestion: "Urinary issues may indicate infection or prostate problems. Stay hydrated and avoid irritants.",
+                    prescription: "Antibiotics if infected. --- Consult a urologist."
+                },
+                allergies: {
+                    suggestion: "Allergies may cause sneezing, itching, or swelling. Identify triggers and avoid them.",
+                    prescription: "Antihistamine like Cetirizine, once daily. --- Avoid allergens."
+                },
+                "eye irritation": {
+                    suggestion: "Eye irritation could be due to allergies, infection, or strain. Avoid rubbing eyes.",
+                    prescription: "Artificial tears, use as needed. --- Consult an ophthalmologist."
+                },
+                constipation: {
+                    suggestion: "Constipation may result from low fiber, dehydration, or inactivity. Increase fiber intake.",
+                    prescription: "Laxative like Bisacodyl, as needed. --- Drink water and eat fruits."
+                },
+                "muscle cramps": {
+                    suggestion: "Muscle cramps may be due to dehydration, electrolyte imbalance, or overuse. Stretch and hydrate.",
+                    prescription: "Electrolyte supplements. --- Gentle stretching exercises."
+                },
+                "weight loss": {
+                    suggestion: "Unexplained weight loss could indicate metabolic issues or serious conditions. Monitor diet.",
+                    prescription: "Consult for blood tests. --- Balanced diet with adequate calories."
+                },
+                "swollen lymph nodes": {
+                    suggestion: "Swollen lymph nodes may indicate infection or, rarely, cancer. Monitor and seek evaluation.",
+                    prescription: "Consult for diagnostic tests. --- Rest and hydrate."
+                },
+                default: {
+                    suggestion: "Based on your description, it could be a minor issue or require further evaluation. Please provide more details or consult a doctor.",
+                    prescription: "Visit a specialist for a detailed check-up. --- Follow a balanced diet and rest."
+                }
+            },
+            Hindi: {
+                headache: {
+                    suggestion: "आपका सिरदर्द तनाव, निर्जलन, या तनाव के कारण हो सकता है। आराम करें, हाइड्रेटेड रहें, और दर्द निवारक दवा लें।",
+                    prescription: "इबुप्रोफेन 200 मिलीग्राम, आवश्यकतानुसार हर 6 घंटे में 1-2 गोलियाँ लें। --- पर्याप्त आराम और जलयोजन करें।"
+                },
+                "chest pain": {
+                    suggestion: "सीने में दर्द हृदय समस्याओं, मांसपेशियों में खिंचाव, या एसिड रिफ्लक्स का संकेत हो सकता है। गंभीर होने पर तुरंत चिकित्सा सहायता लें।",
+                    prescription: "तुरंत कार्डियोलॉजिस्ट से परामर्श करें। --- भारी भोजन से बचें; रिफ्लक्स के लिए एंटासिड लें।"
+                },
+                fever: {
+                    suggestion: "बुखार संक्रमण, फ्लू, या अन्य कारणों से हो सकता है। तापमान की निगरानी करें और हाइड्रेटेड रहें।",
+                    prescription: "पैरासिटामॉल 500 मिलीग्राम, हर 4-6 घंटे में। --- तरल पदार्थ पिएं और आराम करें।"
+                },
+                rash: {
+                    suggestion: "रैश एलर्जी, संक्रमण, या त्वचा की स्थिति के कारण हो सकता है। इरिटेंट्स से बचें और क्षेत्र को साफ रखें।",
+                    prescription: "हाइड्रोकोर्टिसोन क्रीम, दिन में दो बार लगाएं। --- खुजली होने पर एंटीहिस्टामाइन।"
+                },
+                cough: {
+                    suggestion: "खांसी सर्दी, एलर्जी, या श्वसन समस्या से हो सकती है। हाइड्रेटेड रहें और लोजेंजेस का उपयोग करें।",
+                    prescription: "खांसी की दवा, खुराक के अनुसार। --- भाप लें।"
+                },
+                "back pain": {
+                    suggestion: "पीठ दर्द खिंचाव, मुद्रा, या चोट के कारण हो सकता है। आराम करें और गर्मी लगाएं।",
+                    prescription: "दर्द निवारक जैसे इबुप्रोफेन। --- लगातार होने पर फिजियोथेरेपी।"
+                },
+                diarrhea: {
+                    suggestion: "दस्त संक्रमण, खाद्य असहिष्णुता, या तनाव के कारण हो सकते हैं। हाइड्रेटेड रहें और मसालेदार भोजन से बचें।",
+                    prescription: "ओरल रिहाइड्रेशन साल्ट, निर्देशानुसार। --- गंभीर होने पर लोपेरामाइड।"
+                },
+                "sore throat": {
+                    suggestion: "गले में खराश वायरल संक्रमण या जलन के कारण हो सकती है। नमक के पानी से गरारे करें और हाइड्रेटेड रहें।",
+                    prescription: "गले की लोजेंज, आवश्यकतानुसार। --- आराम और गर्म तरल पदार्थ।"
+                },
+                fatigue: {
+                    suggestion: "थकान नींद की कमी, तनाव, या एनीमिया के कारण हो सकती है। पर्याप्त आराम और पोषण सुनिश्चित करें।",
+                    prescription: "मल्टीविटामिन सप्लीमेंट रोजाना। --- लगातार होने पर रक्त परीक्षण के लिए परामर्श करें।"
+                },
+                nausea: {
+                    suggestion: "मतली खाद्य विषाक्तता, मोशन सिकनेस, या संक्रमण के कारण हो सकती है। भारी भोजन से बचें और हाइड्रेटेड रहें।",
+                    prescription: "ओन्डानसेट्रॉन 4 मिलीग्राम, आवश्यकतानुसार। --- अदरक की चाय पिएं।"
+                },
+                dizziness: {
+                    suggestion: "चक्कर निर्जलन, निम्न रक्तचाप, या आंतरिक कान की समस्याओं के कारण हो सकते हैं। आराम करें और हाइड्रेट करें।",
+                    prescription: "संतुलन परीक्षण के लिए परामर्श करें। --- हाइड्रेटेड रहें और अचानक हmovements से बचें।"
+                },
+                "joint pain": {
+                    suggestion: "जोड़ों का दर्द गठिया, चोट, या सूजन के कारण हो सकता है। बर्फ लगाएं और जोड़ को आराम दें।",
+                    prescription: "इबुप्रोफेन 400 मिलीग्राम, हर 6 घंटे में आवश्यकतानुसार। --- ऑर्थोपेडिस्ट से परामर्श करें।"
+                },
+                "abdominal pain": {
+                    suggestion: "पेट दर्द गैस, संक्रमण, या अंग की समस्याओं के कारण हो सकता है। भारी भोजन से बचें और लक्षणों की निगरानी करें।",
+                    prescription: "हल्के मामलों के लिए एंटासिड। --- गंभीर होने पर चिकित्सा मूल्यांकन लें।"
+                },
+                insomnia: {
+                    suggestion: "अनिद्रा तनाव, कैफीन, या चिकित्सा स्थितियों के कारण हो सकती है। नींद की दिनचर्या स्थापित करें।",
+                    prescription: "मेलाटोनिन 3 मिलीग्राम, सोने से 30 मिनट पहले। --- रात में स्क्रीन से बचें।"
+                },
+                "shortness of breath": {
+                    suggestion: "सांस की तकलीफ अस्थमा, हृदय समस्याओं, या चिंता का संकेत हो सकती है। गंभीर होने पर तुरंत मदद लें।",
+                    prescription: "पल्मोनोलॉजिस्ट से परामर्श करें। --- निर्धारित होने पर इनहेलर का उपयोग करें।"
+                },
+                "ear pain": {
+                    suggestion: "कान का दर्द संक्रमण, मोम जमा होने, या चोट के कारण हो सकता है। कान में वस्तुएं डालने से बचें।",
+                    prescription: "संक्रमित होने पर एंटीबायोटिक कान की बूंदें। --- ENT विशेषज्ञ से परामर्श करें।"
+                },
+                "high blood pressure": {
+                    suggestion: "उच्च रक्तचाप को जीवनशैली में बदलाव या दवा की आवश्यकता हो सकती है। नियमित रूप से निगरानी करें।",
+                    prescription: "कार्डियोलॉजिस्ट से परामर्श करें। --- कम नमक वाला आहार और नियमित व्यायाम।"
+                },
+                "low blood sugar": {
+                    suggestion: "निम्न रक्त शर्करा मधुमेह या उपवास में हो सकता है। त्वरित चीनी स्रोत का सेवन करें।",
+                    prescription: "ग्लूकोज टैबलेट, आवश्यकतानुसार। --- एंडोक्रिनोलॉजिस्ट से परामर्श करें।"
+                },
+                anemia: {
+                    suggestion: "एनीमिया थकान और कमजोरी का कारण बन सकता है। आयरन युक्त खाद्य पदार्थ बढ़ाएं और डॉक्टर से परामर्श करें।",
+                    prescription: "आयरन सप्लीमेंट, जैसा कि निर्धारित है। --- पालक और लाल मांस को आहार में शामिल करें।"
+                },
+                "urinary issues": {
+                    suggestion: "मूत्र संबंधी समस्याएं संक्रमण या प्रोस्टेट समस्याओं का संकेत दे सकती हैं। हाइड्रेटेड रहें और इरिटेंट्स से बचें।",
+                    prescription: "संक्रमित होने पर एंटीबायोटिक्स। --- यूरोलॉजिस्ट से परामर्श करें।"
+                },
+                allergies: {
+                    suggestion: "एलर्जी से छींक, खुजली, या सूजन हो सकती है। ट्रिगर्स की पहचान करें और उनसे बचें।",
+                    prescription: "एंटीहिस्टामाइन जैसे सेटिरिज़िन, दिन में एक बार। --- एलर्जी से बचें।"
+                },
+                "eye irritation": {
+                    suggestion: "आंखों में जलन एलर्जी, संक्रमण, या तनाव के कारण हो सकती है। आंखों को रगड़ने से बचें।",
+                    prescription: "कृत्रिम आंसू, आवश्यकतानुसार। --- नेत्र रोग विशेषज्ञ से परामर्श करें।"
+                },
+                constipation: {
+                    suggestion: "कब्ज कम फाइबर, निर्जलन, या निष्क्रियता के कारण हो सकता है। फाइबर का सेवन बढ़ाएं।",
+                    prescription: "रेचक जैसे बिसाकोडिल, आवश्यकतानुसार। --- पानी पिएं और फल खाएं।"
+                },
+                "muscle cramps": {
+                    suggestion: "मांसपेशियों में ऐंठन निर्जलन, इलेक्ट्रोलाइट असंतुलन, या अति प्रयोग के कारण हो सकती है। खिंचाव करें और हाइड्रेट करें।",
+                    prescription: "इलेक्ट्रोलाइट सप्लीमेंट। --- हल्के खिंचाव व्यायाम।"
+                },
+                "weight loss": {
+                    suggestion: "अनजाने वजन घटने से चयापचय समस्याएं या गंभीर स्थिति हो सकती है। आहार की निगरानी करें।",
+                    prescription: "रक्त परीक्षण के लिए परामर्श करें। --- पर्याप्त कैलोरी के साथ संतुलित आहार।"
+                },
+                "swollen lymph nodes": {
+                    suggestion: "सूजी हुई लिम्फ नोड्स संक्रमण या, शायद ही कभी, कैंसर का संकेत दे सकती हैं। निगरानी करें और मूल्यांकन लें।",
+                    prescription: "निदान परीक्षण के लिए परामर्श करें। --- आराम करें और हाइड्रेट करें।"
+                },
+                default: {
+                    suggestion: "आपके विवरण के आधार पर, यह छोटी समस्या हो सकती है या आगे की जांच की आवश्यकता हो सकती है। कृपया अधिक जानकारी दें या डॉक्टर से परामर्श करें।",
+                    prescription: "विशेषज्ञ से विस्तृत जांच के लिए मिलें। --- संतुलित आहार लें और आराम करें।"
+                }
+            },
+            Bangla: {
+                headache: {
+                    suggestion: "আপনার মাথাব্যথা স্ট্রেস, ডিহাইড্রেশন বা টেনশনের কারণে হতে পারে। বিশ্রাম নিন, হাইড্রেটেড থাকুন এবং ব্যথানাশক ওষুধ বিবেচনা করুন।",
+                    prescription: "ইবুপ্রোফেন ২০০ মিলিগ্রাম, প্রয়োজন অনুযায়ী প্রতি ৬ ঘন্টায় ১-২ টি ট্যাবলেট নিন। --- পর্যাপ্ত বিশ্রাম এবং হাইড্রেশন করুন।"
+                },
+                "chest pain": {
+                    suggestion: "বুকে ব্যথা হৃদয়ের সমস্যা, পেশীতে টান বা অ্যাসিড রিফ্লাক্সের ইঙ্গিত দিতে পারে। গুরুতর হলে তাৎক্ষণিক চিকিৎসা নিন।",
+                    prescription: "তাৎক্ষণিকভাবে হৃদরোগ বিশেষজ্ঞের সাথে পরামর্শ করুন। --- ভারী খাবার এড়িয়ে চলুন; রিফ্লাক্স সন্দেহ হলে অ্যান্টাসিড নিন।"
+                },
+                fever: {
+                    suggestion: "জ্বর সংক্রমণ, ফ্লু বা অন্যান্য কারণে হতে পারে। তাপমাত্রা নিরীক্ষণ করুন এবং হাইড্রেটেড থাকুন।",
+                    prescription: "প্যারাসিটামল ৫০০ মিলিগ্রাম, প্রতি ৪-৬ ঘন্টায়। --- তরল পান করুন এবং বিশ্রাম করুন।"
+                },
+                rash: {
+                    suggestion: "র্যাশ অ্যালার্জিক প্রতিক্রিয়া, সংক্রমণ বা ত্বকের অবস্থার কারণে হতে পারে। ইরিট্যান্ট এড়িয়ে চলুন এবং এলাকা পরিষ্কার রাখুন।",
+                    prescription: "হাইড্রোকর্টিসোন ক্রিম, দিনে দুবার লাগান। --- চুলকানি হলে অ্যান্টিহিস্টামিন।"
+                },
+                cough: {
+                    suggestion: "কাশি ঠান্ডা, অ্যালার্জি বা শ্বাসযন্ত্রের সমস্যা থেকে হতে পারে। হাইড্রেটেড থাকুন এবং লজেন্স ব্যবহার করুন।",
+                    prescription: "কাশির সিরাপ, ডোজ অনুসারে। --- বাষ্প নিন।"
+                },
+                "back pain": {
+                    suggestion: "পিঠের ব্যথা টান, ভঙ্গিমা বা আঘাতের কারণে হতে পারে। বিশ্রাম নিন এবং তাপ প্রয়োগ করুন।",
+                    prescription: "ব্যথানাশক যেমন ইবুপ্রোফেন। --- অবিরত হলে ফিজিওথেরাপি।"
+                },
+                diarrhea: {
+                    suggestion: "ডায়রিয়া সংক্রমণ, খাদ্য অসহিষ্ণুতা বা স্ট্রেসের কারণে হতে পারে। হাইড্রেটেড থাকুন এবং মসলাযুক্ত খাবার এড়িয়ে চলুন।",
+                    prescription: "ওরাল রিহাইড্রেশন সল্ট, নির্দেশ অনুযায়ী। --- গুরুতর হলে লোপেরামাইড।"
+                },
+                "sore throat": {
+                    suggestion: "গলা ব্যথা ভাইরাল সংক্রমণ বা জ্বালার কারণে হতে পারে। লবণ পানি দিয়ে গার্গল করুন এবং হাইড্রেটেড থাকুন।",
+                    prescription: "গলার লজেন্স, প্রয়োজন অনুযায়ী। --- বিশ্রাম এবং গরম তরল।"
+                },
+                fatigue: {
+                    suggestion: "ক্লান্তি ঘুমের অভাব, স্ট্রেস বা অ্যানিমিয়ার কারণে হতে পারে। পর্যাপ্ত বিশ্রাম এবং পুষ্টি নিশ্চিত করুন।",
+                    prescription: "মাল্টিভিটামিন সাপ্লিমেন্ট দৈনিক। --- অবিরত হলে রক্ত পরীক্ষার জন্য পরামর্শ করুন।"
+                },
+                nausea: {
+                    suggestion: "বমি বমি ভাব খাদ্য বিষাক্তকরণ, মোশন সিকনেস বা সংক্রমণের কারণে হতে পারে। ভারী খাবার এড়িয়ে চলুন এবং হাইড্রেটেড থাকুন।",
+                    prescription: "ওন্ডানসেট্রন ৪ মিলিগ্রাম, প্রয়োজন অনুযায়ী। --- আদা চা পান করুন।"
+                },
+                dizziness: {
+                    suggestion: "মাথা ঘোরা ডিহাইড্রেশন, নিম্ন রক্তচাপ বা ভিতরের কানের সমস্যার কারণে হতে পারে। বিশ্রাম করুন এবং হাইড্রেট করুন।",
+                    prescription: "ভারসাম্য পরীক্ষার জন্য পরামর্শ করুন। --- হাইড্রেটেড থাকুন এবং হঠাৎ নড়াচড়া এড়িয়ে চলুন।"
+                },
+                "joint pain": {
+                    suggestion: "জয়েন্টে ব্যথা আর্থ্রাইটিস, আঘাত বা প্রদাহের কারণে হতে পারে। বরফ প্রয়োগ করুন এবং জয়েন্টে বিশ্রাম দিন।",
+                    prescription: "ইবুপ্রোফেন ৪০০ মিলিগ্রাম, প্রতি ৬ ঘন্টায় প্রয়োজন অনুযায়ী। --- অর্থোপেডিস্টের সাথে পরামর্শ করুন।"
+                },
+                "abdominal pain": {
+                    suggestion: "পেটে ব্যথা গ্যাস, সংক্রমণ বা অঙ্গের সমস্যার কারণে হতে পারে। ভারী খাবার এড়িয়ে চলুন এবং লক্ষণগুলি পর্যবেক্ষণ করুন।",
+                    prescription: "হালকা ক্ষেত্রে অ্যান্টাসিড। --- গুরুতর হলে চিকিৎসা মূল্যায়ন নিন।"
+                },
+                insomnia: {
+                    suggestion: "অনিদ্রা স্ট্রেস, ক্যাফেইন বা চিকিৎসা অবস্থার কারণে হতে পারে। ঘুমের রুটিন স্থাপন করুন।",
+                    prescription: "মেলাটোনিন ৩ মিলিগ্রাম, ঘুমের ৩০ মিনিট আগে। --- রাতে স্ক্রিন এড়িয়ে চলুন।"
+                },
+                "shortness of breath": {
+                    suggestion: "শ্বাসকষ্ট অ্যাজমা, হৃদরোগ বা উদ্বেগের ইঙ্গিত দিতে পারে। গুরুতর হলে তাৎক্ষণিক সাহায্য নিন।",
+                    prescription: "পালমোনোলজিস্টের সাথে পরামর্শ করুন। --- নির্ধারিত হলে ইনহেলার ব্যবহার করুন।"
+                },
+                "ear pain": {
+                    suggestion: "কানে ব্যথা সংক্রমণ, মোম জমা বা আঘাতের কারণে হতে পারে। কানে কিছু ঢোকানো থেকে বিরত থাকুন।",
+                    prescription: "সংক্রামিত হলে অ্যান্টিবায়োটিক কানের ড্রপ। --- ENT বিশেষজ্ঞের সাথে পরামর্শ করুন।"
+                },
+                "high blood pressure": {
+                    suggestion: "উচ্চ রক্তচাপের জন্য জীবনযাত্রার পরিবর্তন বা ওষুধের প্রয়োজন হতে পারে। নিয়মিত পর্যবেক্ষণ করুন।",
+                    prescription: "হৃদরোগ বিশেষজ্ঞের সাথে পরামর্শ করুন। --- কম লবণযুক্ত খাবার এবং নিয়মিত ব্যায়াম।"
+                },
+                "low blood sugar": {
+                    suggestion: "নিম্ন রক্ত শর্করা ডায়াবেটিস বা উপবাসে হতে পারে। দ্রুত চিনির উৎস গ্রহণ করুন।",
+                    prescription: "গ্লুকোজ ট্যাবলেট, প্রয়োজন অনুযায়ী। --- এন্ডোক্রিনোলজিস্টের সাথে পরামর্শ করুন।"
+                },
+                anemia: {
+                    suggestion: "অ্যানিমিয়া ক্লান্তি এবং দুর্বলতার কারণ হতে পারে। আয়রন সমৃদ্ধ খাবার বাড়ান এবং ডাক্তারের সাথে পরামর্শ করুন।",
+                    prescription: "আয়রন সাপ্লিমেন্ট, নির্ধারিত হিসাবে। --- পালং শাক এবং লাল মাংস খাদ্যে অন্তর্ভুক্ত করুন।"
+                },
+                "urinary issues": {
+                    suggestion: "মূত্র সমস্যা সংক্রমণ বা প্রোস্টেট সমস্যার ইঙ্গিত দিতে পারে। হাইড্রেটেড থাকুন এবং ইরিট্যান্ট এড়িয়ে চলুন।",
+                    prescription: "সংক্রামিত হলে অ্যান্টিবায়োটিক। --- ইউরোলজিস্টের সাথে পরামর্শ করুন।"
+                },
+                allergies: {
+                    suggestion: "অ্যালার্জি হাঁচি, চুলকানি বা ফোলা হতে পারে। ট্রিগার চিহ্নিত করুন এবং তা এড়িয়ে চলুন।",
+                    prescription: "অ্যান্টিহিস্টামিন যেমন সিটিরিজিন, দিনে একবার। --- অ্যালার্জেন এড়িয়ে চলুন।"
+                },
+                "eye irritation": {
+                    suggestion: "চোখের জ্বালা অ্যালার্জি, সংক্রমণ বা স্ট্রেনের কারণে হতে পারে। চোখ ঘষা থেকে বিরত থাকুন।",
+                    prescription: "কৃত্রিম অশ্রু, প্রয়োজন অনুযায়ী। --- চক্ষু বিশেষজ্ঞের সাথে পরামর্শ করুন।"
+                },
+                constipation: {
+                    suggestion: "কোষ্ঠকাঠিন্য কম ফাইবার, ডিহাইড্রেশন বা নিষ্ক্রিয়তার কারণে হতে পারে। ফাইবার গ্রহণ বাড়ান।",
+                    prescription: "ল্যাক্সেটিভ যেমন বিসাকোডিল, প্রয়োজন অনুযায়ী। --- পানি পান করুন এবং ফল খান।"
+                },
+                "muscle cramps": {
+                    suggestion: "পেশীতে খিল ধরা ডিহাইড্রেশন, ইলেক্ট্রোলাইট ভারসাম্যহীনতা বা অতিরিক্ত ব্যবহারের কারণে হতে পারে। স্ট্রেচ করুন এবং হাইড্রেট করুন।",
+                    prescription: "ইলেক্ট্রোলাইট সাপ্লিমেন্ট। --- হালকা স্ট্রেচিং ব্যায়াম।"
+                },
+                "weight loss": {
+                    suggestion: "অজানা ওজন হ্রাস বিপাকীয় সমস্যা বা গুরুতর অবস্থার কারণে হতে পারে। খাদ্য পর্যবেক্ষণ করুন।",
+                    prescription: "রক্ত পরীক্ষার জন্য পরামর্শ করুন। --- পর্যাপ্ত ক্যালোরি সহ সুষম খাদ্য।"
+                },
+                "swollen lymph nodes": {
+                    suggestion: "ফোলা লিম্ফ নোড সংক্রমণ বা, খুব কমই, ক্যান্সারের ইঙ্গিত দিতে পারে। পর্যবেক্ষণ করুন এবং মূল্যায়ন নিন।",
+                    prescription: "নিদান পরীক্ষার জন্য পরামর্শ করুন। --- বিশ্রাম নিন এবং হাইড্রেট করুন।"
+                },
+                default: {
+                    suggestion: "আপনার বর্ণনার উপর ভিত্তি করে, এটি ছোট সমস্যা হতে পারে বা আরও মূল্যায়ন প্রয়োজন। আরও বিস্তারিত জানান বা ডাক্তারের সাথে পরামর্শ করুন।",
+                    prescription: "বিস্তারিত পরীক্ষার জন্য বিশেষজ্ঞের কাছে যান। --- সুষম খাদ্য গ্রহণ করুন এবং বিশ্রাম করুন।"
+                }
+            }
+        };
+
+        function displayMessages() {
+            const chatDiv = document.getElementById('chat-messages');
+            chatDiv.innerHTML = '';
+            messages.forEach((msg, index) => {
+                const msgDiv = document.createElement('div');
+                msgDiv.classList.add('message', msg.role === 'user' ? 'user-message' : 'ai-message');
+                let contentHtml = <strong>${msg.role === 'user' ? 'You' : 'Doctor.AI'}:</strong> ${msg.content};
+                
+                if (msg.role === 'assistant' && msg.prescription) {
+                    contentHtml = <strong>Suggestion:</strong> ${msg.content}<div class="prescription"><strong>Prescription:</strong> ${msg.prescription}</div>;
+                }
+                
+                msgDiv.innerHTML = contentHtml;
+                
+                if (msg.role === 'assistant') {
+                    const speakBtn = document.createElement('button');
+                    speakBtn.classList.add('speak-btn');
+                    speakBtn.textContent = 'Speak';
+                    speakBtn.onclick = () => speakResponse(msg.content + (msg.prescription ? ' ' + msg.prescription : ''));
+                    msgDiv.appendChild(speakBtn);
+
+                    if (msg.prescription) {
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.classList.add('download-btn');
+                        downloadBtn.textContent = 'Download Prescription PDF';
+                        downloadBtn.onclick = () => downloadPrescription(msg.content, msg.prescription);
+                        msgDiv.appendChild(downloadBtn);
+                    }
+                }
+                
+                chatDiv.appendChild(msgDiv);
+            });
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            const userMessage = input.value.trim().toLowerCase();
+            if (!userMessage) return;
+
+            const department = document.getElementById('department').value;
+            const language = document.getElementById('language').value;
+
+            messages.push({ role: 'user', content: input.value.trim() });
+            displayMessages();
+            input.value = '';
+
+            document.getElementById('loading').style.display = 'block';
+
+            // Simulate delay for "thinking"
+            setTimeout(() => {
+                // Find matching keyword
+                let keyword = 'default';
+                const keywords = [
+                    { en: ['headache', 'head'], hi: ['सिरदर्द', 'सिर'], bn: ['মাথাব্যথা', 'মাথা'], key: 'headache' },
+                    { en: ['chest pain', 'chest'], hi: ['सीने में दर्द', 'सीना'], bn: ['বুকে ব্যথা', 'বুক'], key: 'chest pain' },
+                    { en: ['fever'], hi: ['बुखार'], bn: ['জ্বর'], key: 'fever' },
+                    { en: ['rash'], hi: ['रैश'], bn: ['র্যাশ'], key: 'rash' },
+                    { en: ['cough'], hi: ['खांसी'], bn: ['কাশি'], key: 'cough' },
+                    { en: ['back pain', 'back'], hi: ['पीठ दर्द', 'पीठ'], bn: ['পিঠের ব্যথা', 'পিঠ'], key: 'back pain' },
+                    { en: ['diarrhea'], hi: ['दस्त'], bn: ['ডায়রিয়া'], key: 'diarrhea' },
+                    { en: ['sore throat'], hi: ['गले में खराश'], bn: ['গলা ব্যথা'], key: 'sore throat' },
+                    { en: ['fatigue'], hi: ['थकान'], bn: ['ক্লান্তি'], key: 'fatigue' },
+                    { en: ['nausea'], hi: ['मतली'], bn: ['বমি বমি ভাব'], key: 'nausea' },
+                    { en: ['dizziness'], hi: ['चक्कर'], bn: ['মাথা ঘোরা'], key: 'dizziness' },
+                    { en: ['joint pain'], hi: ['जोड़ों का दर्द'], bn: ['জয়েন্টে ব্যথা'], key: 'joint pain' },
+                    { en: ['abdominal pain', 'stomach pain'], hi: ['पेट दर्द'], bn: ['পেটে ব্যথা'], key: 'abdominal pain' },
+                    { en: ['insomnia'], hi: ['अनिद्रा'], bn: ['অনিদ্রা'], key: 'insomnia' },
+                    { en: ['shortness of breath'], hi: ['सांस की तकलीफ'], bn: ['শ্বাসকষ্ট'], key: 'shortness of breath' },
+                    { en: ['ear pain'], hi: ['कान का दर्द'], bn: ['কানে ব্যথা'], key: 'ear pain' },
+                    { en: ['high blood pressure'], hi: ['उच्च रक्तचाप'], bn: ['উচ্চ রক্তচাপ'], key: 'high blood pressure' },
+                    { en: ['low blood sugar'], hi: ['निम्न रक्त शर्करा'], bn: ['নিম্ন রক্ত শর্করা'], key: 'low blood sugar' },
+                    { en: ['anemia'], hi: ['एनीमिया'], bn: ['অ্যানিমিয়া'], key: 'anemia' },
+                    { en: ['urinary issues', 'urinary problem'], hi: ['मूत्र समस्याएं'], bn: ['মূত্র সমস্যা'], key: 'urinary issues' },
+                    { en: ['allergies'], hi: ['एलर्जी'], bn: ['অ্যালার্জি'], key: 'allergies' },
+                    { en: ['eye irritation'], hi: ['आंखों में जलन'], bn: ['চোখের জ্বালা'], key: 'eye irritation' },
+                    { en: ['constipation'], hi: ['कब्ज'], bn: ['কোষ্ঠকাঠিন্য'], key: 'constipation' },
+                    { en: ['muscle cramps'], hi: ['मांसपेशियों में ऐंठन'], bn: ['পেশীতে খিল ধরা'], key: 'muscle cramps' },
+                    { en: ['weight loss'], hi: ['वजन घटना'], bn: ['ওজন হ্রাস'], key: 'weight loss' },
+                    { en: ['swollen lymph nodes'], hi: ['सूजी हुई लिम्फ नोड्स'], bn: ['ফোলা লিম্ফ নোড'], key: 'swollen lymph nodes' }
+                ];
+
+                for (const kw of keywords) {
+                    const terms = language === 'English' ? kw.en : language === 'Hindi' ? kw.hi : kw.bn;
+                    if (terms.some(term => userMessage.includes(term))) {
+                        keyword = kw.key;
+                        break;
+                    }
+                }
+
+                let response = mockResponses[language][keyword];
+
+                // Department-specific logic
+                let suggestion = response.suggestion;
+                let prescription = response.prescription;
+                if (department === 'Cardiology' && keyword === 'chest pain') {
+                    suggestion += ' As a cardiologist, I recommend an ECG test.';
+                } else if (department === 'Dermatology' && keyword === 'rash') {
+                    suggestion += ' In dermatology, this could be eczema or psoriasis; avoid scratching.';
+                } else if (department === 'Neurology' && keyword === 'headache') {
+                    suggestion += ' Neurologically, it might be migraine; track triggers.';
+                } else if (department === 'Pediatrics' && keyword === 'fever') {
+                    suggestion += ' For children, ensure no dehydration; consult if over 102°F.';
+                } else if (department === 'Orthopedics' && keyword === 'back pain') {
+                    suggestion += ' Orthopedically, it could be spinal issue; maintain good posture.';
+                } else if (department === 'Oncology' && keyword === 'default') {
+                    suggestion = language === 'English' ? 
+                        'Your symptoms may indicate a serious condition like cancer. Please consult an oncologist for detailed tests.' :
+                        language === 'Hindi' ? 
+                        'आपके लक्षण गंभीर स्थिति जैसे कैंसर का संकेत दे सकते हैं। कृपया ऑन्कोलॉजिस्ट से विस्तृत जांच के लिए परामर्श करें।' :
+                        'আপনার লক্ষণগুলি ক্যান্সারের মতো গুরুতর অবস্থার ইঙ্গিত দিতে পারে। বিস্তারিত পরীক্ষার জন্য অনকোলজিস্টের সাথে পরামর্শ করুন।';
+                } else if (department === 'ENT' && keyword === 'cough') {
+                    suggestion += ' In ENT, this might be throat infection; gargle with salt water.';
+                } else if (department === 'Oncology' && keyword === 'swollen lymph nodes') {
+                    suggestion += ' In oncology, this could indicate lymphoma; urgent tests needed.';
+                }
+
+                messages.push({ role: 'assistant', content: suggestion, prescription: prescription });
+                displayMessages();
+                saveChatHistory();
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+        }
+
+        function analyzeReport() {
+            const fileInput = document.getElementById('report-file');
+            const language = document.getElementById('language').value;
+            const department = document.getElementById('department').value;
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please upload an image file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('report-preview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+
+                let analysis = language === 'English' ? 
+                    'The uploaded report image appears to be a medical document. Based on typical reports, it may show blood test results or scans.' :
+                    language === 'Hindi' ? 
+                    'अपलोड की गई रिपोर्ट छवि एक चिकित्सा दस्तावेज प्रतीत होती है। सामान्य रिपोर्ट्स के आधार पर, यह रक्त परीक्षण या स्कैन दिखा सकती है।' :
+                    'আপলোড করা রিপোর্ট ছবিটি একটি মেডিকেল ডকুমেন্ট বলে মনে হয়। সাধারণ রিপোর্টের উপর ভিত্তি করে, এটি রক্ত পরীক্ষা বা স্ক্যান দেখাতে পারে।';
+
+                if (department === 'Cardiology') {
+                    analysis += language === 'English' ? ' Possible heart-related metrics.' : language === 'Hindi' ? ' संभावित हृदय संबंधित मेट्रिक्स।' : ' সম্ভাব্য হৃদয় সম্পর্কিত মেট্রিক্স।';
+                } else if (department === 'Oncology') {
+                    analysis += language === 'English' ? ' Look for tumor markers.' : language === 'Hindi' ? ' ट्यूमर मार्कर की जांच करें।' : ' টিউমার মার্কার দেখুন।';
+                }
+
+                analysis += language === 'English' ? ' Please consult a doctor for accurate diagnosis.' : language === 'Hindi' ? ' सटीक निदान के लिए डॉक्टर से परामर्श करें।' : ' সঠিক নির্ণয়ের জন্য ডাক্তারের সাথে পরামর্শ করুন।';
+
+                messages.push({ role: 'user', content: 'Uploaded a medical report for analysis.' });
+                messages.push({ role: 'assistant', content: analysis });
+                displayMessages();
+                saveChatHistory();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function speakResponse(text) {
+            const language = document.getElementById('language').value;
+            const langCode = getLangCode(language);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = langCode;
+            speechSynthesis.speak(utterance);
+        }
+
+        function getLangCode(lang) {
+            if (lang === 'Hindi') return 'hi-IN';
+            if (lang === 'Bangla') return 'bn-BD';
+            return 'en-US';
+        }
+
+        function clearChat() {
+            messages = [];
+            displayMessages();
+            saveChatHistory();
+            document.getElementById('report-preview').style.display = 'none';
+        }
+
+        function saveChatHistory() {
+            localStorage.setItem('doctorAIChat', JSON.stringify(messages));
+        }
+
+        function loadChatHistory() {
+            const savedChat = localStorage.getItem('doctorAIChat');
+            if (savedChat) {
+                messages = JSON.parse(savedChat);
+                displayMessages();
+            }
+        }
+
+        function downloadPrescription(suggestion, prescription) {
+            const language = document.getElementById('language').value;
+            const department = document.getElementById('department').value;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.text("Doctor.AI Prescription", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.text(Department: ${department}, 20, 40);
+            doc.text(Language: ${language}, 20, 50);
+
+            doc.text("Suggestion:", 20, 60);
+            doc.text(suggestion, 20, 70, { maxWidth: 170 });
+
+            doc.text("Prescription:", 20, 100);
+            doc.text(prescription, 20, 110, { maxWidth: 170 });
+
+            doc.text("Note: This is a  real medical advice. Consult a doctor.or if you are facing more problem then contact to Senior Doctor ", 20, 140, { maxWidth: 170 });
+
+            doc.save('DoctorAI_Prescription.pdf');
+        }
+
+        function toggleVoiceRecognition() {
+            const language = document.getElementById('language').value;
+            const langCode = getLangCode(language);
+            const status = document.getElementById('voice-status');
+
+            if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+                alert('Speech recognition not supported in this browser. Try Chrome.');
+                return;
+            }
+
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = langCode;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            if (!isRecognizing) {
+                recognition.start();
+                isRecognizing = true;
+                status.textContent = 'Listening...';
+                document.getElementById('voice-btn').textContent = 'Stop Voice';
+            } else {
+                recognition.stop();
+                isRecognizing = false;
+                status.textContent = '';
+                document.getElementById('voice-btn').textContent = 'Voice Input';
+            }
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('user-input').value += transcript + ' ';
+                status.textContent = 'Recognized: ' + transcript;
+            };
+
+            recognition.onspeechend = function() {
+                recognition.stop();
+                isRecognizing = false;
+                status.textContent = '';
+                document.getElementById('voice-btn').textContent = 'Voice Input';
+            };
+
+            recognition.onerror = function(event) {
+                status.textContent = 'Error: ' + event.error;
+                isRecognizing = false;
+                document.getElementById('voice-btn').textContent = 'Voice Input';
+            };
+        }
+    </script>
+</body>
+</html>
